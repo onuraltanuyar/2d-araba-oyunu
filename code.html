@@ -1,0 +1,229 @@
+<!--- Onur Altan Uyar 2D Araba Oyunu -->
+<!-- HTML Gömülü şekilde derledim kendinize göre düzenlersiniz. -->
+<!-- İletişim: onuraltanuyariletisim@gmail.com -->
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>2D Araba Oyunu - Onur Altan Uyar</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+    }
+    body {
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: sans-serif;
+      position: relative;
+      overflow: hidden;
+    }
+    canvas {
+      border: 3px solid #fff;
+      background: #333;
+      display: block;
+      z-index: 0;
+    }
+    #scoreBoard {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: white;
+      font-size: 24px;
+      font-family: sans-serif;
+      z-index: 2;
+    }
+    #gameOverScreen {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.85);
+      color: white;
+      padding: 40px;
+      border-radius: 10px;
+      display: none;
+      text-align: center;
+      z-index: 3;
+    }
+    #gameOverScreen button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #fff;
+      border: none;
+      cursor: pointer;
+    }
+    footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    height: 50px;
+    background: rgba(35, 35, 35, 0.6);
+    color: #dfdfdf; /* açık krem/bej gibi sıcak bir renk */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Brush Script MT', cursive, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 26px;
+    font-style: italic;
+    font-weight: 500;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+    user-select: none;
+    }
+ 
+  </style>
+</head>
+<body>
+
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
+  <div id="scoreBoard">Skor: 0</div>
+
+  <div id="gameOverScreen">
+    <h1>💥 Oyun Bitti!</h1>
+    <p id="finalScore"></p>
+    <button onclick="restartGame()">Tekrar Oyna</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Sprite görselleri
+    const playerImg = new Image();
+    playerImg.src = 'assets/car.png'; // kırmızı araba (örnek)
+
+    const enemyImg = new Image();
+    enemyImg.src = 'assets/enemy_car.png'; // siyah araba (örnek)
+
+    const roadImg = new Image();
+    roadImg.src = 'assets/road.png'; // yol zemin (örnek)
+
+    // Sesler
+    const crashSound = new Audio('https://freesound.org/data/previews/198/198841_285997-lq.mp3');
+    const engineSound = new Audio('https://freesound.org/data/previews/145/145137_2499469-lq.mp3');
+    engineSound.loop = true;
+    engineSound.volume = 0.3;
+
+    const player = {
+      x: 180,
+      y: 500,
+      width: 40,
+      height: 80,
+      speed: 6,
+      img: playerImg
+    };
+
+    let enemies = [];
+    let score = 0;
+    let isGameOver = false;
+    let roadY = 0;
+
+    function updateScore() {
+      document.getElementById('scoreBoard').textContent = `Skor: ${score}`;
+    }
+
+    function gameOver() {
+      isGameOver = true;
+      document.getElementById('finalScore').textContent = `Toplam Skor: ${score}`;
+      document.getElementById('gameOverScreen').style.display = 'block';
+      crashSound.play();
+      engineSound.pause();
+    }
+
+    function restartGame() {
+      location.reload();
+    }
+
+    function spawnEnemy() {
+      const laneWidth = 80;
+      const x = Math.floor(Math.random() * 4) * laneWidth + 40;
+      enemies.push({
+        x,
+        y: -100,
+        width: 40,
+        height: 80,
+        speed: 3 + Math.random() * 2,
+        img: enemyImg
+      });
+    }
+
+    function isColliding(a, b) {
+      return (
+        a.x < b.x + b.width &&
+        a.x + a.width > b.x &&
+        a.y < b.y + b.height &&
+        a.y + a.height > b.y
+      );
+    }
+
+    function drawRoad() {
+      roadY += 4;
+      if (roadY > canvas.height) roadY = 0;
+      ctx.drawImage(roadImg, 0, roadY - canvas.height, canvas.width, canvas.height);
+      ctx.drawImage(roadImg, 0, roadY, canvas.width, canvas.height);
+    }
+
+    function gameLoop() {
+      if (isGameOver) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawRoad();
+
+      // Oyuncu arabası
+      ctx.drawImage(player.img, player.x, player.y, player.width, player.height);
+
+      // Düşman arabalar
+      for (let i = 0; i < enemies.length; i++) {
+        const e = enemies[i];
+        e.y += e.speed;
+        ctx.drawImage(e.img, e.x, e.y, e.width, e.height);
+
+        if (isColliding(player, e)) {
+          gameOver();
+          return;
+        }
+
+        if (e.y > canvas.height) {
+          enemies.splice(i, 1);
+          i--;
+          score++;
+          updateScore();
+        }
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' && player.x > 0) {
+        player.x -= player.speed;
+      }
+      if (e.key === 'ArrowRight' && player.x + player.width < canvas.width) {
+        player.x += player.speed;
+      }
+      if (!engineSound.paused) return;
+      engineSound.play().catch(() => {});
+    });
+
+    // Başlangıçta motor sesi çal
+    window.onload = () => {
+      engineSound.play().catch(() => {});
+    };
+
+    setInterval(spawnEnemy, 1200);
+    gameLoop();
+  </script>
+
+  <footer>
+
+    <h2>Yapım: Onur Altan Uyar</h2>
+  </footer>
+</body>
+</html>
