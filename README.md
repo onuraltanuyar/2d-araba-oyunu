@@ -1,4 +1,5 @@
 Direkt HTML olarak derledim kendiniz düzenlersiniz.
 
 
-[Video](https://www.youtube.com/watch?v=sBzucKGlwGA)
+[![YouTube Videosu](https://img.youtube.com/vi/sBzucKGlwGA/hqdefault.jpg)](https://www.youtube.com/watch?v=sBzucKGlwGA)
+
